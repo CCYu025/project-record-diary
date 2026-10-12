@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "schemaVersion": "1.0",
+    "app": "專案紀錄",
+    "note": "範例資料，內容是虛構的。clone 下來沒有設定 .env 時會用這份開機。範例沒有附照片檔案。"
+  },
+  "projects": [],
+  "records": [
+    { "id": 1, "date": "2026-01-05", "shift": "早", "start": "09:00", "end": "12:00", "project": "示範設備安裝", "stage": "設備定位", "content": "設備就定位，確認高度、水平", "photos": [], "updatedAt": null },
+    { "id": 2, "date": "2026-01-05", "shift": "中", "start": "13:00", "end": "17:00", "project": "示範設備安裝", "stage": "配線", "content": "主電源與訊號線配線，端子台加上線號標示", "photos": [], "updatedAt": null },
+    { "id": 3, "date": "2026-01-06", "shift": "早", "start": "08:30", "end": "11:30", "project": "示範設備安裝", "stage": "相機安裝", "content": "相機支架組裝，鏡頭初步對焦", "photos": [], "updatedAt": null },
+    { "id": 4, "date": "2026-01-07", "shift": "早", "start": "09:00", "end": "11:00", "project": "示範設備安裝", "stage": "參數調整", "content": "光源亮度、曝光時間調整，取樣確認辨識結果", "photos": [], "updatedAt": null },
+    { "id": 5, "date": "2026-01-08", "shift": "早", "start": null, "end": null, "project": "示範設備安裝", "stage": "設備定位", "content": "重新校水平", "photos": [], "updatedAt": null }
+  ]
+}

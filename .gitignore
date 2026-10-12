@@ -1,0 +1,25 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# 環境設定（含你電腦上的實際資料夾路徑）
+.env
+
+# 真實資料一律不 commit：data.json、照片只留在 DATA_DIR（你自己的 OneDrive 資料夾）
+# 範例資料 backend/data/example/ 是例外，本來就該進版控
+backend/data/data.json
+backend/data/*.xlsx
+backend/data/example/照片/
+*.tmp-*
+
+# 發行打包輸出
+dist/
+
+# 編輯器 / 系統
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code 本機設定
+.claude/

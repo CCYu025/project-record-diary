@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>專案紀錄</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;600;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* 配色、字體、報表紙本風格沿用姊妹專案 personal-work-diary / production-line-diary */
+  :root{
+    --page:#f9f9f7; --surface:#fcfcfb; --surface-raised:#ffffff;
+    --ink-1:#0b0b0b; --ink-2:#52514e; --ink-muted:#7a7973;
+    --line:#e1e0d9; --line-strong:#c3c2b7;
+    --accent:#2a78d6; --accent-2:#184f95; --accent-ink:#ffffff; --accent-wash:#e9f1fb;
+    --warning-ink:#8a5a00; --warning-wash:#fdf1d6;
+    --critical:#d03b3b; --critical-wash:#fbeaea;
+    --scrim:rgba(10,10,10,0.55);
+    --shadow:0 12px 32px -12px rgba(20,20,18,0.18), 0 2px 8px -2px rgba(20,20,18,0.10);
+    --font-sans:"Noto Sans TC","Segoe UI",system-ui,-apple-system,sans-serif;
+    --font-mono:"IBM Plex Mono","Noto Sans TC",ui-monospace,Consolas,monospace;
+    --font-serif:"Noto Serif TC","PMingLiU",serif;
+    /* 報表的紙：不跟深淺色主題走，深色模式下也是一張白紙 */
+    --paper:#fbfaf6; --paper-ink:#1a1a17; --paper-ink-2:#3c3b36; --paper-muted:#6b6a61; --paper-hair:#d6d4ca; --paper-photo:#ebe9e1;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme:dark;
+      --page:#0d0d0d; --surface:#1a1a19; --surface-raised:#212120;
+      --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-muted:#9a9890;
+      --line:#2c2c2a; --line-strong:#45453f;
+      --accent:#3987e5; --accent-2:#86b6ef; --accent-ink:#0b0b0b; --accent-wash:#132538;
+      --warning-ink:#f5c451; --warning-wash:#33280f;
+      --critical:#e66767; --critical-wash:#3a1c1c;
+      --scrim:rgba(0,0,0,0.7);
+      --shadow:0 12px 32px -12px rgba(0,0,0,0.6), 0 2px 8px -2px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --page:#0d0d0d; --surface:#1a1a19; --surface-raised:#212120;
+    --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-muted:#9a9890;
+    --line:#2c2c2a; --line-strong:#45453f;
+    --accent:#3987e5; --accent-2:#86b6ef; --accent-ink:#0b0b0b; --accent-wash:#132538;
+    --warning-ink:#f5c451; --warning-wash:#33280f;
+    --critical:#e66767; --critical-wash:#3a1c1c;
+    --scrim:rgba(0,0,0,0.7);
+    --shadow:0 12px 32px -12px rgba(0,0,0,0.6), 0 2px 8px -2px rgba(0,0,0,0.4);
+  }
+
+  *{ box-sizing:border-box; }
+  [hidden]{ display:none !important; }
+  html,body{ height:100%; }
+  body{ margin:0; background:var(--page); color:var(--ink-1); font-family:var(--font-sans); font-size:14px; line-height:1.55; }
+  h1,h2,h3{ margin:0; text-wrap:balance; font-weight:700; }
+  p{ margin:0; }
+  button,input,select,textarea{ font:inherit; color:inherit; }
+  button{ cursor:pointer; }
+  button:disabled{ cursor:not-allowed; opacity:.5; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  .icon{ width:18px; height:18px; flex:none; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .muted{ color:var(--ink-muted); }
+
+  .app{ display:grid; grid-template-columns:220px minmax(0,1fr); min-height:100%; max-width:1440px; margin:0 auto; }
+  .sidebar{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; gap:20px; padding:22px 14px; border-right:1px solid var(--line); background:var(--surface); }
+  .brand{ display:flex; flex-direction:column; gap:2px; padding:0 10px; }
+  .brand b{ font-size:17px; letter-spacing:.02em; }
+  .brand span{ color:var(--ink-muted); font-size:12px; }
+  .nav{ display:flex; flex-direction:column; gap:2px; }
+  .nav button{ display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:0; border-radius:8px; background:transparent; color:var(--ink-2); text-align:left; white-space:nowrap; }
+  .nav button:hover{ background:var(--accent-wash); color:var(--ink-1); }
+  .nav button[aria-current="page"]{ background:var(--accent-wash); color:var(--accent-2); font-weight:500; }
+  .nav .count{ margin-left:auto; font-size:12px; color:var(--ink-muted); }
+  .sidebar-foot{ margin-top:auto; padding-top:14px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
+  .path{ font-size:11.5px; color:var(--ink-muted); word-break:break-all; padding:0 10px; }
+
+  main{ padding:24px 28px 80px; min-width:0; }
+  .load-error{ display:flex; gap:10px; align-items:flex-start; padding:12px 14px; margin-bottom:20px; border-radius:10px; background:var(--critical-wash); color:var(--critical); }
+  .head{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+  .head h1{ font-size:22px; }
+  .head p{ color:var(--ink-2); font-size:13px; margin-top:2px; }
+
+  .btn{ display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 14px; border:1px solid var(--line-strong); border-radius:8px; background:var(--surface-raised); color:var(--ink-1); white-space:nowrap; }
+  .btn:hover:not(:disabled){ border-color:var(--ink-muted); }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:500; }
+  .btn.primary:hover:not(:disabled){ background:var(--accent-2); border-color:var(--accent-2); }
+  .btn.ghost{ border-color:transparent; background:transparent; color:var(--ink-2); }
+  .btn.ghost:hover:not(:disabled){ background:var(--accent-wash); }
+  .btn.danger{ color:var(--critical); }
+  .btn.danger.armed{ background:var(--critical); border-color:var(--critical); color:#fff; }
+  .kbd{ font-family:var(--font-mono); font-size:11px; padding:1px 5px; border:1px solid currentColor; border-radius:4px; opacity:.8; }
+
+  /* 新增／修改 */
+  .entry{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:24px; align-items:start; }
+  .card{ background:var(--surface-raised); border:1px solid var(--line); border-radius:12px; }
+  .form{ padding:22px 24px 0; display:flex; flex-direction:column; gap:20px; }
+  .row{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+  .field{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .field > label, .field > .lab{ font-size:13px; font-weight:500; color:var(--ink-2); }
+  .req{ color:var(--critical); margin-left:2px; }
+  .hint{ font-size:12px; color:var(--ink-muted); font-weight:400; }
+  .input{ height:38px; padding:0 10px; border:1px solid var(--line-strong); border-radius:8px; background:var(--surface); width:100%; }
+  textarea.input{ height:auto; min-height:64px; padding:8px 10px; resize:vertical; line-height:1.55; }
+  .input:hover{ border-color:var(--ink-muted); }
+  .input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-wash); }
+  .err{ font-size:12px; color:var(--critical); }
+  .field.invalid .input, .field.invalid .chip-input{ border-color:var(--critical); }
+  .times{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .times .input{ flex:1 1 112px; min-width:112px; }
+  .seg{ display:inline-flex; max-width:100%; border:1px solid var(--line-strong); border-radius:8px; overflow-x:auto; scrollbar-width:none; height:38px; }
+  .seg button{ flex:1 0 auto; min-width:52px; padding:0 12px; border:0; background:var(--surface); color:var(--ink-2); white-space:nowrap; }
+  .seg button + button{ border-left:1px solid var(--line-strong); }
+  .seg button[aria-pressed="true"]{ background:var(--accent); color:var(--accent-ink); font-weight:500; }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .chip{ height:32px; padding:0 12px; border:1px solid var(--line-strong); border-radius:999px; background:var(--surface); color:var(--ink-2); font-size:13px; }
+  .chip:hover{ border-color:var(--ink-muted); color:var(--ink-1); }
+  .chip[aria-pressed="true"]{ background:var(--accent-wash); border-color:var(--accent); color:var(--accent-2); font-weight:500; }
+  .chip-input{ height:32px; width:170px; padding:0 12px; border:1px dashed var(--line-strong); border-radius:999px; background:transparent; font-size:13px; }
+  .chip-input:focus{ outline:none; border-style:solid; border-color:var(--accent); }
+
+  .photos-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .pgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:14px; }
+  .pgrid:empty{ display:none; }
+  .pcard{ display:flex; flex-direction:column; gap:8px; padding:8px; border:1px solid var(--line); border-radius:10px; background:var(--surface); }
+  .pcard.dragging{ opacity:.4; }
+  .pcard.over{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-wash); }
+  .pcard.failed{ border-color:var(--critical); }
+  .pimg{ position:relative; aspect-ratio:4/3; border-radius:6px; overflow:hidden; background:var(--line); }
+  .pimg img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .pimg .missing, .lb-img .missing{ white-space:pre-line; word-break:break-all; }
+  .pimg .missing{ position:absolute; inset:0; display:grid; place-items:center; padding:8px; text-align:center; font-size:12px; color:var(--ink-muted); background:var(--surface); }
+  .pimg .tools{ position:absolute; inset:6px 6px auto auto; display:flex; gap:4px; }
+  .pimg .tools button, .pimg .grip{ display:grid; place-items:center; width:28px; height:28px; border:0; border-radius:6px; background:rgba(11,11,11,.62); color:#fff; }
+  .pimg .grip{ position:absolute; left:6px; top:6px; cursor:grab; }
+  .pimg .tools button:hover{ background:var(--critical); }
+  .pimg .idx{ position:absolute; left:6px; bottom:6px; font-size:11px; padding:0 6px; border-radius:4px; background:rgba(11,11,11,.62); color:#fff; }
+  .pimg .state{ position:absolute; inset:auto 0 0 0; padding:4px 8px; font-size:12px; background:rgba(11,11,11,.72); color:#fff; }
+  .pimg .state.bad{ background:var(--critical); }
+  .pcard textarea{ min-height:52px; font-size:13px; }
+  .drop{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-height:110px; padding:16px; border:1.5px dashed var(--line-strong); border-radius:10px; color:var(--ink-2); text-align:center; cursor:pointer; background:var(--surface); }
+  .drop:hover, .drop.over{ border-color:var(--accent); background:var(--accent-wash); color:var(--accent-2); }
+  .drop small{ color:var(--ink-muted); font-size:12px; }
+  .savebar{ position:sticky; bottom:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:4px -24px 0; padding:14px 24px; border-top:1px solid var(--line); background:var(--surface-raised); border-radius:0 0 12px 12px; }
+  .savebar .spacer{ flex:1; }
+  .savebar .status{ font-size:12px; color:var(--ink-muted); }
+  .savebar .status.bad{ color:var(--critical); }
+
+  .side{ padding:18px; position:sticky; top:20px; }
+  .side h2{ font-size:14px; margin-bottom:2px; }
+  .side .sub{ font-size:12px; color:var(--ink-muted); margin-bottom:14px; }
+  .tl{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+  .tl li{ position:relative; padding:0 0 16px 18px; border-left:2px solid var(--line); margin-left:5px; }
+  .tl li:last-child{ border-left-color:transparent; }
+  .tl li::before{ content:""; position:absolute; left:-7px; top:4px; width:12px; height:12px; border-radius:50%; background:var(--surface-raised); border:2px solid var(--accent); }
+  .tl li.draft::before{ border-style:dashed; border-color:var(--ink-muted); }
+  .tl .t{ font-size:12px; color:var(--ink-muted); }
+  .tl .s{ font-weight:500; font-size:13px; }
+  .tl .c{ font-size:13px; color:var(--ink-2); white-space:pre-wrap; }
+  .tl .thumbs{ display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
+  .tl .thumbs > *{ width:40px; height:30px; border-radius:4px; overflow:hidden; background:var(--line); }
+  .tl .thumbs img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .empty{ padding:28px 12px; text-align:center; color:var(--ink-muted); font-size:13px; }
+  .empty b{ display:block; color:var(--ink-1); font-size:15px; margin-bottom:4px; }
+
+  /* 紀錄 */
+  .filters{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:18px; }
+  .search{ position:relative; flex:1 1 260px; }
+  .search .icon{ position:absolute; left:10px; top:10px; color:var(--ink-muted); }
+  .search .input{ padding-left:34px; }
+  select.input{ width:auto; min-width:150px; }
+  .day{ margin-bottom:22px; }
+  .day-h{ position:sticky; top:0; z-index:2; display:flex; align-items:baseline; gap:10px; padding:8px 0; background:var(--page); border-bottom:1px solid var(--line); margin-bottom:10px; }
+  .day-h b{ font-size:15px; }
+  .day-h span{ font-size:12px; color:var(--ink-muted); }
+  .rec{ padding:14px 16px; margin-bottom:10px; }
+  .rec-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .tag{ display:inline-flex; align-items:center; height:22px; padding:0 8px; border-radius:6px; font-size:12px; background:var(--page); color:var(--ink-2); border:1px solid var(--line); }
+  .tag.stage{ background:var(--accent-wash); color:var(--accent-2); border-color:transparent; font-weight:500; }
+  .rec-h .proj{ font-size:12px; color:var(--ink-muted); }
+  .rec-h .act{ margin-left:auto; }
+  .rec-c{ margin:8px 0 0; font-size:14.5px; white-space:pre-wrap; }
+  .rgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-top:12px; }
+  .rph{ display:flex; flex-direction:column; gap:4px; border:0; padding:0; background:none; text-align:left; }
+  .rph .pimg{ transition:transform .15s ease-out; }
+  .rph:hover .pimg{ transform:scale(1.02); }
+  .rph .cap{ font-size:12.5px; color:var(--ink-2); line-height:1.45; }
+  .rph .cap.none{ color:var(--ink-muted); font-style:italic; }
+  mark{ background:var(--warning-wash); color:inherit; border-radius:2px; }
+
+  /* 燈箱 */
+  .lb{ position:fixed; inset:0; z-index:50; background:var(--scrim); display:grid; place-items:center; padding:24px; }
+  .lb-box{ width:min(1000px,100%); max-height:100%; display:flex; flex-direction:column; gap:12px; background:var(--surface-raised); border-radius:14px; padding:14px; box-shadow:var(--shadow); }
+  .lb-img{ position:relative; display:grid; place-items:center; background:#111; border-radius:8px; overflow:hidden; height:min(68vh,640px); }
+  .lb-img .missing{ color:#ccc; font-size:13px; text-align:center; }
+  .lb-img img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .lb-img .nav-b{ position:absolute; top:50%; transform:translateY(-50%); display:grid; place-items:center; width:44px; height:44px; border:0; border-radius:50%; background:rgba(255,255,255,.88); color:#111; }
+  .lb-img .prev{ left:10px; } .lb-img .next{ right:10px; }
+  .lb-meta{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .lb-meta .input{ flex:1 1 320px; }
+  .lb-where{ font-size:12px; color:var(--ink-muted); }
+
+  /* 報表 */
+  .rp-ctrl{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:18px; }
+  .rp-ctrl .lab{ font-size:13px; color:var(--ink-2); }
+  .rp-ctrl .spacer{ flex:1; }
+  .paper{ max-width:860px; margin:0 auto; background:var(--paper); color:var(--paper-ink); padding:44px 52px 56px; box-shadow:var(--shadow); font-family:var(--font-serif); }
+  .paper .mast{ border-top:3px double var(--paper-ink); border-bottom:1px solid var(--paper-ink); padding:12px 0 10px; display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; }
+  .paper .mast h2{ font-size:26px; font-weight:900; letter-spacing:.06em; }
+  .paper .mast .meta{ font-family:var(--font-sans); font-size:12px; color:var(--paper-ink-2); text-align:right; }
+  .paper .sum{ display:flex; gap:28px; flex-wrap:wrap; padding:12px 0; border-bottom:1px solid var(--paper-hair); font-family:var(--font-sans); font-size:12px; color:var(--paper-muted); }
+  .paper .sum b{ display:block; font-size:20px; color:var(--paper-ink); font-family:var(--font-mono); font-weight:500; }
+  .paper h3{ font-size:17px; font-weight:900; margin:26px 0 10px; padding-bottom:4px; border-bottom:1px solid var(--paper-ink); display:flex; justify-content:space-between; align-items:baseline; gap:10px; break-after:avoid; }
+  .paper h3 small{ font-family:var(--font-sans); font-weight:400; font-size:12px; color:var(--paper-muted); }
+  .paper .it{ padding:10px 0 14px; border-bottom:1px solid var(--paper-hair); }
+  .paper .it-h{ font-family:var(--font-sans); font-size:12px; color:var(--paper-muted); display:flex; gap:10px; flex-wrap:wrap; }
+  .paper .it-h b{ color:var(--paper-ink); font-weight:500; }
+  .paper .it-c{ font-size:15px; margin-top:4px; white-space:pre-wrap; }
+  .paper .pp{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:10px; }
+  .paper figure{ margin:0; break-inside:avoid; }
+  .paper figure .pimg{ background:var(--paper-photo); border-radius:0; }
+  .paper figcaption{ font-size:12.5px; color:var(--paper-ink-2); margin-top:4px; line-height:1.45; }
+  .paper .foot{ margin-top:24px; font-family:var(--font-sans); font-size:11px; color:var(--paper-muted); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .paper .none{ padding:30px 0; color:var(--paper-muted); font-family:var(--font-sans); }
+
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:60; display:flex; align-items:center; gap:14px; max-width:calc(100% - 32px); padding:10px 12px 10px 16px; border-radius:10px; background:var(--ink-1); color:var(--page); box-shadow:var(--shadow); font-size:13px; }
+  .toast.bad{ background:var(--critical); color:#fff; }
+  .toast button{ border:0; background:transparent; color:var(--accent); font-weight:500; padding:4px 6px; white-space:nowrap; }
+  .toast.bad button{ color:#fff; text-decoration:underline; }
+
+  @media (max-width:1080px){ .entry{ grid-template-columns:minmax(0,1fr); } .side{ position:static; } }
+  @media (max-width:820px){
+    .app{ grid-template-columns:minmax(0,1fr); }
+    .sidebar{ position:static; height:auto; flex-direction:row; align-items:center; gap:10px; padding:10px 16px; border-right:0; border-bottom:1px solid var(--line); }
+    .brand, .sidebar-foot{ display:none; }
+    .nav{ flex-direction:row; width:100%; overflow-x:auto; scrollbar-width:none; }
+    .nav button{ width:auto; padding:8px 10px; }
+    .nav .count{ display:none; }
+    main{ padding:18px 16px 80px; }
+    .row{ grid-template-columns:minmax(0,1fr); }
+    .form{ padding:18px 16px 0; } .savebar{ margin:4px -16px 0; padding:12px 16px; }
+    .paper{ padding:28px 20px 36px; } .paper .pp{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+  @media print{
+    @page{ margin:14mm; }
+    body{ background:#fff; }
+    .sidebar, .no-print, .toast, .lb, .load-error, .head{ display:none !important; }
+    .app{ display:block; } main{ padding:0; }
+    .paper{ box-shadow:none; max-width:none; padding:0; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-window" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><b>專案紀錄</b><span id="brand-project"></span></div>
+    <nav class="nav" aria-label="主選單">
+      <button data-view="entry" aria-current="page"><svg class="icon"><use href="#i-plus"/></svg><span id="nav-entry-label">新增紀錄</span></button>
+      <button data-view="list"><svg class="icon"><use href="#i-list"/></svg>紀錄<span class="count" id="nav-count"></span></button>
+      <button data-view="report"><svg class="icon"><use href="#i-print"/></svg>報表</button>
+    </nav>
+    <div class="sidebar-foot">
+      <button class="btn ghost" id="export-btn"><svg class="icon"><use href="#i-file"/></svg>匯出 Excel</button>
+      <p class="path" id="data-path"></p>
+    </div>
+  </aside>
+
+  <main>
+    <div class="load-error" id="load-error" role="alert" hidden><svg class="icon"><use href="#i-alert"/></svg><span id="load-error-msg"></span></div>
+
+    <!-- 新增／修改 -->
+    <section id="view-entry">
+      <div class="head">
+        <div><h1 id="entry-title">新增紀錄</h1><p id="entry-sub">日期、班別、時段已依目前時間和上一筆帶入</p></div>
+      </div>
+      <div class="entry">
+        <form class="card form" id="form" novalidate>
+          <div class="row">
+            <div class="field" id="fd-date"><label for="f-date">日期<span class="req">*</span></label><input class="input mono" type="date" id="f-date" required>
+              <span class="err" hidden>選一個日期</span></div>
+            <div class="field"><span class="lab" id="lab-shift">班別<span class="req">*</span></span>
+              <div class="seg" role="group" aria-labelledby="lab-shift" id="f-shift">
+                <button type="button" data-v="早">早</button><button type="button" data-v="中">中</button><button type="button" data-v="晚">晚</button>
+              </div></div>
+            <div class="field" id="fd-time"><span class="lab">時段 <span class="hint">選填</span></span>
+              <div class="times"><input class="input mono" type="time" id="f-start" aria-label="開始時間"><span aria-hidden="true">–</span><input class="input mono" type="time" id="f-end" aria-label="結束時間"></div>
+              <span class="err" hidden>結束時間不能早於開始時間</span></div>
+          </div>
+
+          <div class="field" id="fd-project"><span class="lab" id="lab-project">專案名稱<span class="req">*</span></span>
+            <div class="chips" role="group" aria-labelledby="lab-project" id="f-project"></div>
+            <span class="err" hidden>選一個專案，或輸入新的專案名稱後按 Enter</span></div>
+
+          <div class="field" id="fd-stage"><span class="lab" id="lab-stage">工作進度<span class="req">*</span> <span class="hint">這個專案最近用過的排前面</span></span>
+            <div class="chips" role="group" aria-labelledby="lab-stage" id="f-stage"></div>
+            <span class="err" hidden>選一個工作進度，或輸入新的後按 Enter</span></div>
+
+          <div class="field" id="fd-content"><label for="f-content">工作內容<span class="req">*</span></label>
+            <textarea class="input" id="f-content" rows="2" placeholder="高度、水平、管線"></textarea>
+            <span class="err" hidden>寫一下這段時間做了什麼</span></div>
+
+          <div class="field">
+            <div class="photos-head"><span class="lab">照片 <span id="p-count" class="hint"></span></span><span class="hint">每張可以寫一句說明（選填）· 拖曳左上角調整順序 · Tab 跳下一張</span></div>
+            <div class="pgrid" id="f-photos"></div>
+            <label class="drop" id="drop" for="f-file">
+              <svg class="icon" style="width:24px;height:24px"><use href="#i-upload"/></svg>
+              <span>把照片拖到這裡，或點一下選擇檔案</span>
+              <small>可以一次選多張 · LINE 存下來的照片直接拖進來就好</small>
+            </label>
+            <input type="file" id="f-file" accept="image/*" multiple hidden>
+          </div>
+
+          <div class="savebar">
+            <button type="submit" class="btn primary" id="save-btn"><span id="save-label">儲存紀錄</span> <span class="kbd">Ctrl+Enter</span></button>
+            <button type="button" class="btn ghost" id="cancel-btn" hidden>取消修改</button>
+            <button type="button" class="btn ghost" id="clear-btn" hidden>清空</button>
+            <span class="spacer"></span>
+            <span class="status" id="save-status" aria-live="polite"></span>
+            <button type="button" class="btn danger" id="del-btn" hidden>刪除這筆</button>
+          </div>
+        </form>
+
+        <aside class="card side" aria-labelledby="tl-h">
+          <h2 id="tl-h">這一天的紀錄</h2>
+          <p class="sub" id="tl-sub"></p>
+          <ol class="tl" id="timeline"></ol>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 紀錄 -->
+    <section id="view-list" hidden>
+      <div class="head"><div><h1>紀錄</h1><p id="list-sub"></p></div></div>
+      <div class="filters">
+        <div class="search"><svg class="icon"><use href="#i-search"/></svg><input class="input" id="q" type="search" placeholder="搜尋工作內容或照片說明，例如：水平" aria-label="搜尋"></div>
+        <select class="input" id="fl-project" aria-label="專案"></select>
+        <select class="input" id="fl-stage" aria-label="工作進度"></select>
+      </div>
+      <div id="list"></div>
+    </section>
+
+    <!-- 報表 -->
+    <section id="view-report" hidden>
+      <div class="head"><div><h1>報表</h1><p>選期間和排法，列印另存 PDF，或開新視窗截圖</p></div></div>
+      <div class="rp-ctrl no-print">
+        <div class="seg" role="group" aria-label="期間" id="rp-range">
+          <button type="button" data-v="week">本週</button><button type="button" data-v="lastweek">上週</button><button type="button" data-v="month">本月</button><button type="button" data-v="all">整個專案</button><button type="button" data-v="custom">自訂</button>
+        </div>
+        <span id="rp-custom" class="times" hidden><input class="input mono" type="date" id="rp-from" aria-label="開始日期"><span>–</span><input class="input mono" type="date" id="rp-to" aria-label="結束日期"></span>
+        <select class="input" id="rp-project" aria-label="報表的專案"></select>
+        <span class="lab">排法</span>
+        <div class="seg" role="group" aria-label="排法" id="rp-group">
+          <button type="button" data-v="date">依日期</button><button type="button" data-v="stage">依工作進度（教育訓練用）</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="btn" id="rp-window"><svg class="icon"><use href="#i-window"/></svg>開新視窗</button>
+        <button class="btn primary" id="rp-print"><svg class="icon"><use href="#i-print"/></svg>列印／存 PDF</button>
+      </div>
+      <article class="paper" id="paper"></article>
+    </section>
+  </main>
+</div>
+
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="照片">
+  <div class="lb-box">
+    <div class="lb-img" id="lb-img"></div>
+    <div class="lb-meta">
+      <span class="mono" id="lb-n"></span>
+      <input class="input" id="lb-cap" placeholder="照片說明" aria-label="照片說明">
+      <button class="btn ghost" id="lb-close"><svg class="icon"><use href="#i-x"/></svg>關閉 <span class="kbd">Esc</span></button>
+    </div>
+    <p class="lb-where" id="lb-where"></p>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden role="status" aria-live="polite"><span id="toast-msg"></span><button id="toast-act" hidden></button></div>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>
