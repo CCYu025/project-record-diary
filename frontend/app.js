@@ -1,7 +1,8 @@
 // 專案紀錄的前端。驗證、排序、報表計算直接 import 後端同一支 rules.js，
 // 不要在這裡另外寫一份——兩邊規則不一致時，畫面跟匯出的 Excel 會對不起來。
 import {
-  buildReport, dateToPhotoFolder, knownStages, reportPeriod, sortRecords, todayString, weekdayLabel,
+  RECENT_STAGE_LIMIT, buildReport, dateToPhotoFolder, knownStages, reportPeriod, searchStages, similarStages, sortRecords,
+  stageStats, todayString, weekdayLabel,
 } from "/lib/rules.js";
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -129,7 +130,7 @@ function renderForm() {
   if ($("#f-content").value !== draft.content) $("#f-content").value = draft.content;
   $$("#f-shift button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === draft.shift)));
   renderChips("project", data.projects, "輸入新專案…");
-  renderChips("stage", knownStages(data.records, draft.project), "輸入新的工作進度…");
+  renderStageChips();
   renderPhotos();
   $("#entry-title").textContent = editing ? "修改紀錄" : "新增紀錄";
   $("#nav-entry-label").textContent = editing ? "修改紀錄" : "新增紀錄";
@@ -143,6 +144,7 @@ function renderForm() {
   renderTimeline();
 }
 
+// 專案：標籤列（專案不會多到排不下）
 function renderChips(key, list, placeholder) {
   const box = $(`#f-${key}`);
   const values = draft[key] && !list.includes(draft[key]) ? [draft[key], ...list] : list;
@@ -163,6 +165,104 @@ function pickChip(key, value) {
   setErr(key, false);
   renderForm();
 }
+
+// 工作進度：標籤列只放這個專案最近用過的幾個，其他的用搜尋框找，找不到就直接新增。
+// 工作進度幾乎每筆都不一樣，全部列成標籤會越來越長（使用者 2026-10-13 選的方案）。
+const stageInput = () => $("#f-stage-search");
+const STAGE_ERR_DEFAULT = "選一個工作進度，或搜尋後按 Enter";
+const combo = { open: false, active: 0, items: [] };
+
+function renderStageChips() {
+  const recent = stageStats(data.records, draft.project).slice(0, RECENT_STAGE_LIMIT).map((s) => s.name);
+  // 目前選的一定要看得到（從搜尋選了比較舊的、或剛打的新名稱）
+  const values = draft.stage && !recent.includes(draft.stage) ? [draft.stage, ...recent] : recent;
+  const box = $("#f-stage");
+  box.innerHTML = values.map((v) => `<button type="button" class="chip" aria-pressed="${v === draft.stage}" data-v="${esc(v)}">${esc(v)}</button>`).join("");
+  $$(".chip", box).forEach((c) => c.addEventListener("click", () => pickStage(c.dataset.v)));
+}
+function pickStage(name) {
+  const v = String(name || "").trim();
+  if (!v) return;
+  draft.stage = v;
+  stageInput().value = "";
+  closeCombo();
+  setStageErr("");
+  renderForm();
+}
+function setStageErr(msg) {
+  $("#stage-err").textContent = msg || STAGE_ERR_DEFAULT;
+  setErr("stage", Boolean(msg));
+}
+function markedName(name, marks) {
+  const set = new Set(marks);
+  return [...name].map((c, i) => (set.has(i) ? `<mark>${esc(c)}</mark>` : esc(c))).join("");
+}
+const mdShort = (d) => { const [, m, dd] = d.split("-"); return `${+m}/${+dd}`; };
+
+function openCombo() {
+  combo.open = true;
+  renderCombo();
+}
+function closeCombo() {
+  combo.open = false;
+  const input = stageInput();
+  input.setAttribute("aria-expanded", "false");
+  input.removeAttribute("aria-activedescendant");
+  $("#stage-list").hidden = true;
+}
+function renderCombo() {
+  const input = stageInput();
+  const q = input.value.trim();
+  const stats = stageStats(data.records, draft.project);
+  const hits = searchStages(stats, q).slice(0, 8);
+  const exact = stats.some((s) => s.name === q);
+  const similar = q && !exact ? similarStages(stats.map((s) => s.name), q).filter((n) => !hits.some((h) => h.name === n)) : [];
+  combo.items = [...hits.map((h) => ({ name: h.name })), ...(q && !exact ? [{ name: q, isNew: true }] : [])];
+  combo.active = Math.min(combo.active, Math.max(combo.items.length - 1, 0));
+
+  const meta = (h) => (h.count ? `${h.count} 筆 · ${mdShort(h.lastDate)}` : "其他專案用過");
+  let html = q || !stats.length ? "" : `<div class="combo-sec">最近用過（共 ${stats.length} 個）</div>`;
+  html += hits.map((h, i) => `<div class="combo-opt" role="option" id="stage-opt-${i}" aria-selected="${i === combo.active}" data-i="${i}">
+      <span>${markedName(h.name, h.marks)}</span><span class="meta">${meta(h)}</span></div>`).join("");
+  if (similar.length) html += `<div class="combo-hint">已經有相似的：${similar.map(esc).join("、")}。確定要新增嗎？</div>`;
+  if (q && !exact) {
+    const i = hits.length;
+    html += `<div class="combo-opt new" role="option" id="stage-opt-${i}" aria-selected="${i === combo.active}" data-i="${i}"><span>＋ 新增「${esc(q)}」</span></div>`;
+  }
+  if (!hits.length && !q) html += `<div class="combo-empty">還沒有工作進度，直接輸入第一個。</div>`;
+
+  const list = $("#stage-list");
+  list.innerHTML = html;
+  list.hidden = false;
+  input.setAttribute("aria-expanded", "true");
+  input.setAttribute("aria-activedescendant", `stage-opt-${combo.active}`);
+  $$(".combo-opt", list).forEach((el) => {
+    // mousedown 而不是 click：click 之前輸入框會先 blur，清單已經被關掉了
+    el.addEventListener("mousedown", (e) => { e.preventDefault(); pickStage(combo.items[Number(el.dataset.i)].name); });
+  });
+  $(".combo-opt[aria-selected=true]", list)?.scrollIntoView({ block: "nearest" });
+}
+
+stageInput().addEventListener("focus", () => { combo.active = 0; openCombo(); });
+stageInput().addEventListener("input", () => { combo.active = 0; setStageErr(""); openCombo(); });
+stageInput().addEventListener("blur", () => closeCombo()); // 打到一半的文字留著，按儲存時會提醒，不會默默丟掉
+stageInput().addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey) return; // Ctrl+Enter 是儲存，交給全域的處理（搜尋框有字時 save() 會提醒）
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    if (!combo.open) return openCombo();
+    const n = combo.items.length;
+    if (n) combo.active = (combo.active + (e.key === "ArrowDown" ? 1 : -1) + n) % n;
+    renderCombo();
+  } else if (e.key === "Enter") {
+    e.preventDefault(); // 輸入框在 <form> 裡，不擋的話 Enter 會直接送出整張表單
+    const item = combo.open ? combo.items[combo.active] : null;
+    if (item) pickStage(item.name);
+  } else if (e.key === "Escape" && combo.open) {
+    e.preventDefault();
+    closeCombo();
+  }
+});
 
 function renderPhotos() {
   const grid = $("#f-photos");
@@ -299,16 +399,24 @@ function updateSaveStatus(msg, bad = false) {
 
 async function save() {
   if (state.busy) return;
+  // 搜尋框裡打了字但還沒選：不要默默丟掉，也不要猜是不是要新增
+  const pending = stageInput().value.trim();
+  if (pending) {
+    setStageErr(`「${pending}」還沒選：按 Enter 選取或新增，或把搜尋框清空`);
+    stageInput().focus();
+    return;
+  }
   const missing = [];
   if (!draft.date) missing.push("date");
   if (!draft.project) missing.push("project");
   if (!draft.stage) missing.push("stage");
   if (!draft.content.trim()) missing.push("content");
   for (const k of ["date", "project", "stage", "content"]) setErr(k, missing.includes(k));
+  $("#stage-err").textContent = STAGE_ERR_DEFAULT;
   if (!checkTime()) missing.push("time");
   if (missing.length) {
     const first = missing[0];
-    ({ date: $("#f-date"), project: $("#f-project-new"), stage: $("#f-stage-new"), content: $("#f-content"), time: $("#f-end") })[first]?.focus();
+    ({ date: $("#f-date"), project: $("#f-project-new"), stage: stageInput(), content: $("#f-content"), time: $("#f-end") })[first]?.focus();
     return;
   }
   if (draft.photos.some((p) => p.uploading)) return updateSaveStatus("照片還在上傳，等一下再儲存", true);
@@ -360,6 +468,7 @@ function startNew(keep) {
   abandonDraft();
   state.editingId = null;
   draft = freshDraft(keep);
+  stageInput().value = "";
   setErrAll(false);
   updateSaveStatus();
   renderForm();
@@ -417,6 +526,7 @@ function edit(id, force = false) {
     project: r.project, stage: r.stage, content: r.content,
     photos: (r.photos || []).map((p) => ({ key: ++photoKey, file: p.file, caption: p.caption, staged: false, preview: photoUrl(r.date, p.file) })),
   };
+  stageInput().value = "";
   setErrAll(false);
   updateSaveStatus();
   go("entry");
