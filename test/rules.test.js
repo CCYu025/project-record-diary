@@ -1,8 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildReport, dateToPhotoFolder, isSafePhotoName, knownProjects, knownStages, normalizeRecord, parseTimeRange,
-  reportKind, reportPeriod, sortRecords, sortRecordsChronological, timeRangeText, todayString,
+  RECENT_STAGE_LIMIT, buildReport, dateToPhotoFolder, isSafePhotoName, knownProjects, knownStages, matchStage, normalizeRecord,
+  parseTimeRange, reportKind, reportPeriod, searchStages, similarStages, sortRecords, sortRecordsChronological, stageStats,
+  timeRangeText, todayString,
 } from "../backend/lib/rules.js";
 
 const base = { date: "2026-10-12", shift: "早", start: "09:30", end: "12:00", project: "CCD設備安裝", stage: "送料設備定位", content: "高度、水平、管線" };
@@ -109,4 +110,41 @@ test("buildReport 依工作進度：同一階段跨天的紀錄集中，順序�
   assert.deepEqual(first.records.map((r) => r.id), [1, 4]);
   assert.equal(first.days, 2);
   assert.equal(first.photos, 2);
+});
+
+test("stageStats：這個專案的筆數和最後使用日；別的專案才用過的 count 是 0", () => {
+  const stats = stageStats(records, "CCD設備安裝");
+  assert.deepEqual(stats.map((s) => s.name), ["送料設備定位", "CCD安裝", "配線", "拆機"]);
+  assert.deepEqual(stats[0], { name: "送料設備定位", count: 2, lastDate: "2026-10-13" }, "10/12 一筆＋10/13 一筆（id 4）");
+  assert.deepEqual(stats[3], { name: "拆機", count: 0, lastDate: null });
+  assert.equal(RECENT_STAGE_LIMIT, 5);
+});
+
+test("matchStage：連續包含優先、依序出現也找得到、不分大小寫、空字串全部符合", () => {
+  assert.deepEqual(matchStage("送料機調整", "料機"), { score: 0, index: 1, marks: [1, 2] });
+  assert.deepEqual(matchStage("送料機調整", "送調"), { score: 1, index: 0, marks: [0, 3] });
+  assert.equal(matchStage("送料機調整", "調送"), null, "順序不對不算");
+  assert.equal(matchStage("送料機調整", "相機"), null);
+  assert.ok(matchStage("CCD相機校正", "ccd"));
+  assert.deepEqual(matchStage("任何", "  "), { score: 0, index: 0, marks: [] });
+});
+
+test("searchStages：沒打字照最近使用；打字時連續包含的排前面，同分維持最近使用的順序", () => {
+  const stats = ["CCD相機校正", "設備異常排查", "送料機調整", "CCD鏡頭", "送料機運轉", "送料設備定位"].map((name) => ({ name, count: 1, lastDate: "2026-10-13" }));
+  assert.deepEqual(searchStages(stats, "").map((s) => s.name), stats.map((s) => s.name));
+  assert.deepEqual(searchStages(stats, "送料").map((s) => s.name), ["送料機調整", "送料機運轉", "送料設備定位"]);
+  assert.deepEqual(searchStages(stats, "送調").map((s) => s.name), ["送料機調整"]);
+  assert.deepEqual(searchStages(stats, "鏡").map((s) => s.name), ["CCD鏡頭"]);
+  // 連續包含的（score 0）排在依序出現的（score 1）前面，即使後者比較新
+  const mixed = [{ name: "送出料件" }, { name: "送料" }];
+  assert.deepEqual(searchStages(mixed, "送料").map((s) => s.name), ["送料", "送出料件"]);
+});
+
+test("similarStages：共用連續兩個字就算相似，最像的排前面，完全相同的不算，一個字不查", () => {
+  const names = ["送料設備定位", "送料機運轉", "送料機調整", "CCD鏡頭", "設備異常排查"];
+  assert.deepEqual(similarStages(names, "送料機配線"), ["送料機運轉", "送料機調整", "送料設備定位"]);
+  assert.deepEqual(similarStages(names, "送料機調整"), ["送料機運轉", "送料設備定位"], "完全相同的自己不列");
+  assert.deepEqual(similarStages(names, "鏡"), []);
+  assert.deepEqual(similarStages(names, "安全護罩安裝"), []);
+  assert.equal(similarStages(names, "設備", 1).length, 1, "limit");
 });

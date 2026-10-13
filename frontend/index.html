@@ -120,6 +120,16 @@
   .chip-input{ height:32px; width:170px; padding:0 12px; border:1px dashed var(--line-strong); border-radius:999px; background:transparent; font-size:13px; }
   .chip-input:focus{ outline:none; border-style:solid; border-color:var(--accent); }
 
+  .combo{ position:relative; }
+  .combo-list{ position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:20; max-height:300px; overflow-y:auto; background:var(--surface-raised); border:1px solid var(--line-strong); border-radius:8px; box-shadow:var(--shadow); }
+  .combo-sec{ padding:8px 12px 2px; font-size:11px; color:var(--ink-muted); }
+  .combo-opt{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:8px 12px; cursor:pointer; }
+  .combo-opt .meta{ font-size:12px; color:var(--ink-muted); white-space:nowrap; }
+  .combo-opt:hover, .combo-opt[aria-selected="true"]{ background:var(--accent-wash); }
+  .combo-opt.new{ border-top:1px solid var(--line); color:var(--accent-2); font-weight:500; }
+  .combo-hint{ padding:8px 12px; font-size:12.5px; background:var(--warning-wash); color:var(--warning-ink); }
+  .combo-empty{ padding:12px; font-size:13px; color:var(--ink-muted); }
+
   .photos-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .pgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:14px; }
   .pgrid:empty{ display:none; }
@@ -309,9 +319,14 @@
             <div class="chips" role="group" aria-labelledby="lab-project" id="f-project"></div>
             <span class="err" hidden>選一個專案，或輸入新的專案名稱後按 Enter</span></div>
 
-          <div class="field" id="fd-stage"><span class="lab" id="lab-stage">工作進度<span class="req">*</span> <span class="hint">這個專案最近用過的排前面</span></span>
+          <div class="field" id="fd-stage"><span class="lab" id="lab-stage">工作進度<span class="req">*</span> <span class="hint">最近用過的 5 個，其他的在下面搜尋</span></span>
             <div class="chips" role="group" aria-labelledby="lab-stage" id="f-stage"></div>
-            <span class="err" hidden>選一個工作進度，或輸入新的後按 Enter</span></div>
+            <div class="combo">
+              <input class="input" id="f-stage-search" type="text" role="combobox" aria-expanded="false" aria-controls="stage-list" aria-autocomplete="list"
+                aria-labelledby="lab-stage" autocomplete="off" maxlength="40" placeholder="搜尋或輸入新的工作進度，例：送料">
+              <div class="combo-list" id="stage-list" role="listbox" aria-label="工作進度" hidden></div>
+            </div>
+            <span class="err" id="stage-err" hidden>選一個工作進度，或搜尋後按 Enter</span></div>
 
           <div class="field" id="fd-content"><label for="f-content">工作內容<span class="req">*</span></label>
             <textarea class="input" id="f-content" rows="2" placeholder="高度、水平、管線"></textarea>

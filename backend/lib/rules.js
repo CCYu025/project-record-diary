@@ -168,6 +168,82 @@ export function knownStages(records = [], project = "") {
   ]);
 }
 
+// 新增表單的工作進度標籤列只放最近用過的幾個，其他的用搜尋框找（使用者 2026-10-13 選的方案）。
+// 工作進度實際上幾乎每筆都不一樣，全部列成標籤會越來越長。
+export const RECENT_STAGE_LIMIT = 5;
+
+/**
+ * 工作進度清單加上使用統計，順序跟 knownStages 一樣（這個專案最近用過的排前面）。
+ * count／lastDate 只算這個專案的紀錄；別的專案才用過的名稱 count 是 0。
+ * @returns {{ name: string, count: number, lastDate: string|null }[]}
+ */
+export function stageStats(records = [], project = "") {
+  const mine = records.filter((r) => r.project === project);
+  return knownStages(records, project).map((name) => {
+    const used = mine.filter((r) => r.stage === name);
+    return { name, count: used.length, lastDate: used.reduce((max, r) => (r.date > max ? r.date : max), "") || null };
+  });
+}
+
+/**
+ * 名稱跟搜尋字比對（不分大小寫）：
+ *   - 連續包含 → score 0（越前面出現越好，用 index 排）
+ *   - 每個字依序出現但不連續 → score 1，例如「送調」找得到「送料機調整」
+ * @returns {{ score: number, index: number, marks: number[] } | null}  marks 是要標示的字元位置
+ */
+export function matchStage(name, query) {
+  const n = [...String(name)];
+  const q = [...String(query).trim().toLowerCase()];
+  if (!q.length) return { score: 0, index: 0, marks: [] };
+  const lower = n.map((c) => c.toLowerCase());
+  for (let i = 0; i + q.length <= lower.length; i++) {
+    if (q.every((c, k) => lower[i + k] === c)) return { score: 0, index: i, marks: q.map((_, k) => i + k) };
+  }
+  const marks = [];
+  let j = 0;
+  for (let i = 0; i < lower.length && j < q.length; i++) {
+    if (lower[i] === q[j]) {
+      marks.push(i);
+      j++;
+    }
+  }
+  return j === q.length ? { score: 1, index: marks[0], marks } : null;
+}
+
+/** 搜尋工作進度：沒打字時照最近使用排；有打字時連續包含的優先，同分維持最近使用的順序。 */
+export function searchStages(stats, query) {
+  const hits = [];
+  stats.forEach((s, order) => {
+    const m = matchStage(s.name, query);
+    if (m) hits.push({ ...s, ...m, order });
+  });
+  return hits.sort((a, b) => a.score - b.score || a.order - b.order);
+}
+
+/**
+ * 輸入新名稱時提醒「已經有相似的」：跟既有名稱有共用的連續兩個字（例：「送料機配線」跟「送料機調整」共用「送料」「料機」）。
+ * 用來在名稱分岔之前先擋一下，例如「送料設備定位／送料機運轉／送料機調整」其實是同一台機器。
+ * 共用越多的排越前面，完全相同的不算（那不是「相似」，是同一個）。
+ */
+export function similarStages(names, query, limit = 3) {
+  const q = String(query).trim();
+  if ([...q].length < 2) return [];
+  const pairs = (s) => {
+    const chars = [...s.toLowerCase()];
+    const out = new Set();
+    for (let i = 0; i < chars.length - 1; i++) out.add(chars[i] + chars[i + 1]);
+    return out;
+  };
+  const mine = pairs(q);
+  return names
+    .filter((n) => n !== q)
+    .map((n, order) => ({ n, order, shared: [...pairs(n)].filter((p) => mine.has(p)).length }))
+    .filter((x) => x.shared > 0)
+    .sort((a, b) => b.shared - a.shared || a.order - b.order)
+    .slice(0, limit)
+    .map((x) => x.n);
+}
+
 /**
  * 舊 Excel「時間」欄的時段字串 → { start, end }。
  * 接受 "0930-1200"、"09:30-12:00"、"9:30~12:00"；看不懂就回傳 null，由呼叫端決定怎麼保留原文。
